@@ -6,7 +6,7 @@ import Rightside from "./Rightside";
 const Home = () => {
   return (
     <Container>
-      <Section>
+      {/* <Section>
         <h5>
           <a>Hiring in a hurry? - </a>
         </h5>
@@ -14,7 +14,7 @@ const Home = () => {
           Find talented pros in record time with Upwork and keep business
           moving.
         </p>
-      </Section>
+      </Section> */}
       <Layout>
           <Leftside />
           <Main />
@@ -63,11 +63,14 @@ const Layout = styled.div`
   grid-template-columns: minmax(0, 5fr) minmax(0, 12fr) minmax(300px, 7fr);
   column-gap: 25px;
   row-gap: 25px;
-  margin: 25px 0;
+  margin: 25px 8%;
+
 
   @media (max-width: 768px) {
     display: flex;
     flex-direction: column;
+  margin: 25px 0;
+
   }
 `;
 export default Home;
