@@ -35,7 +35,7 @@ function Rightside() {
         </Recommendation>
       </FollowCard>
       <BannerCard>
-        <img src="https://static-exp1.licdn.com/scds/common/u/images/promo/ads/li_evergreen_jobs_ad_300x250_v1.jpg" />
+        <img src="/images/ad.png" />
       </BannerCard>
     </Container>
   );
@@ -115,6 +115,7 @@ const BannerCard = styled.div`
   img {
     width: 100%;
     height: 100%;
+    border-radius:5px;
   }
 `;
 export default Rightside;

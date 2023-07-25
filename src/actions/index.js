@@ -1,14 +1,22 @@
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import {auth,provider,storage} from "../firebase"
 import db from "../firebase"
-import {SET_USER} from "./actionType"
-import { getDownloadURL, getStorage, ref, uploadBytesResumable } from "firebase/storage";
-import { collection, doc, setDoc } from "firebase/firestore";
+import {SET_USER,SET_LOADING_STATUS,GET_ARTICLES} from "./actionType"
+import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+import { collection, doc, getDocs, orderBy, query, setDoc } from "firebase/firestore";
+
 export const setUser=(payload)=>({
     type:SET_USER,
     user:payload
 })
-
+export const setLoading=(status)=>({
+    type:SET_LOADING_STATUS,
+    status,
+})
+export const getArticles=(payload)=>({
+    type:GET_ARTICLES,
+    payload,
+})
 export function signInAPI(){
     return (dispatch)=>{
         signInWithPopup(auth,provider)
@@ -33,37 +41,29 @@ export function getUserAuth(){
     }
 }
 export function postArticleAPI(payload){
-    return (dispatch)=>{
+    return async (dispatch)=>{
+        dispatch(setLoading(true))
         //var storage=getStorage();
         if(payload.image!="")
         {
-            const imageRef=ref(storage,`images/${payload.image.name}`);
-            const uploadTask=uploadBytesResumable(imageRef,payload.image);
-        
-            uploadTask.on('state_changed',(snapshot)=>{
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                console.log(progress);
-            },e=>console.log(e.message),async ()=>{
-                console.log("The file is uploaded!");
-                const downloadURL=await getDownloadURL(uploadTask.snapshot.ref);
-                
-                  //upload doc
-                  var data={
-                    actor:
-                    {
-                        description:payload.user.email,
-                        title:payload.user.displayName,
-                        date:payload.timestamp,
-                        image:payload.user.photoURL
-                    },
-                    video:payload.video,
-                    shareImg:downloadURL,
-                    comments:0,
-                    description:payload.description,
-                }
-                  const articleRef = doc(collection(db, "articles"));
-                  await setDoc(articleRef, data);
-            });
+            const downloadURL=await uploadTaskPromise(payload.image);
+            var data={
+                actor:
+                {
+                    description:payload.user.email,
+                    title:payload.user.displayName,
+                    date:payload.timestamp,
+                    image:payload.user.photoURL
+                },
+                video:"",
+                shareImg:downloadURL,
+                comments:0,
+                description:payload.description,
+            }
+            const articleRef = doc(collection(db, "articles"));
+            await setDoc(articleRef, data);
+            //console.log("created on firebase at ",Date(Date.now()))
+             dispatch(setLoading(false))
         }
         else if(payload.video!="")
         {
@@ -82,6 +82,8 @@ export function postArticleAPI(payload){
             }
               const articleRef = doc(collection(db, "articles"));
               setDoc(articleRef, data);
+                dispatch(setLoading(false))
+
         }
         else{
             var data={
@@ -99,8 +101,44 @@ export function postArticleAPI(payload){
             }
               const articleRef = doc(collection(db, "articles"));
               setDoc(articleRef, data);
-        }
-        
-    }
+              dispatch(setLoading(false))
 
+        }
+    }
+}
+async function uploadTaskPromise(image) {
+    return new Promise(function(resolve, reject) {
+      const imageRef=ref(storage,`images/${String(Math.random()*10)}-${image.name}`);
+      const uploadTask=uploadBytesResumable(imageRef,image);
+      uploadTask.on('state_changed',
+      (snapshot)=>{
+          //const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          
+      },
+      e=>{
+        console.log(e.message)
+        reject();
+      },
+      async ()=>{
+          //console.log("The file is uploaded!");
+          const downloadURL=await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(downloadURL)
+           
+
+      });
+
+    })
+  }
+export function getArticlesAPI(){
+    return async (dispatch)=>{
+        dispatch(setLoading(true))
+        let payload=[];
+        var docRef=collection(db,"articles");
+        var q=query(docRef,orderBy("actor.date","desc"));
+        const snapShot=await getDocs(q);
+        snapShot.forEach(a=>payload.push(a.data()));
+        dispatch(getArticles(payload));
+        dispatch(setLoading(false))
+
+    }
 }

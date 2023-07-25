@@ -37,9 +37,13 @@ function PostModal(props) {
         setVideoLink("");
         setAssetArea("");
     }
-    const postArticle=(e)=>{
+    const  postArticle=async (e)=>{
         e.preventDefault();
-        if(e.target!==e.currentTarget){return;}
+        if(e.target!==e.currentTarget || editorText.length<3)
+        {
+            alert("You have to type some content.");
+            return;
+        }
         const payload={
             image:shareImage,
             video:videoLink,
@@ -47,7 +51,10 @@ function PostModal(props) {
             description:editorText,
             timestamp:serverTimestamp(),
         }
-        props.postArticle(payload);
+        props.handleModal();
+        await props.postArticle(payload);
+        //console.log("after await ",Date(Date.now()));
+        props.setRefreshPost(true);
         reset();
     }
   return (
@@ -95,12 +102,12 @@ function PostModal(props) {
             </SharedContent>
             <ShareCreation>
                 <AttachAssets>
-                    <AssetButton onClick={()=>switchAssetArea("image")} htmlFor="file" text="Add a photo">
+                    <AssetButton onClick={()=>switchAssetArea("image")} htmlFor="file" data-text="Add a photo">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" id="image-medium" data-supported-dps="24x24" fill="rgba(0,0,0,0.5)" width="24" height="24" focusable="false">
                     <path d="M19 4H5a3 3 0 00-3 3v10a3 3 0 003 3h14a3 3 0 003-3V7a3 3 0 00-3-3zm1 13a1 1 0 01-.29.71L16 14l-2 2-6-6-4 4V7a1 1 0 011-1h14a1 1 0 011 1zm-2-7a2 2 0 11-2-2 2 2 0 012 2z"></path>
                     </svg>
                     </AssetButton>
-                    <AssetButton onClick={()=>{switchAssetArea("video")}} text="Add a video">
+                    <AssetButton onClick={()=>{switchAssetArea("video")}} data-text="Add a video">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" id="video-medium" data-supported-dps="24x24" fill="rgba(0,0,0,0.5)" width="24" height="24" focusable="false">
                     <path d="M19 4H5a3 3 0 00-3 3v10a3 3 0 003 3h14a3 3 0 003-3V7a3 3 0 00-3-3zm-9 12V8l6 4z"></path>
                     </svg>
@@ -108,7 +115,7 @@ function PostModal(props) {
                 </AttachAssets>
                 </ShareCreation>
                 <Footer>
-                    <PostButton onClick={e=>postArticle(e)} enabled={editorText ? true:false}>
+                    <PostButton onClick={e=>{postArticle(e);}} disabled={editorText ? false:true}>
                         Post
                     </PostButton>
                 </Footer>
@@ -240,7 +247,7 @@ const AssetButton=styled.label`
         display:flex;
         align-items:center;
         justify-content:center;
-        content:${p =>"'"+p.text+"'"};
+        content:${p =>"'"+p["data-text"]+"'"};
         max-width:calc(100vw - 40px);
         white-space: nowrap;
         padding:6px 12px;
@@ -291,8 +298,8 @@ const Footer=styled.div`
     
 `;
 const PostButton=styled.button`
-    background-color:${p => p.enabled?'#0a66c2':'rgba(0,0,0,0.08)'};
-    color:${p => p.enabled?'white':'rgba(0,0,0,0.3)'};
+    background-color:${p => !p.disabled?'#0a66c2':'rgba(0,0,0,0.08)'};
+    color:${p => !p.disabled?'white':'rgba(0,0,0,0.3)'};
     border:none;
     outline:none;
     font-weight:600;
@@ -302,7 +309,7 @@ const PostButton=styled.button`
     border-radius:40px;
     min-height:30px;
     &:hover{
-    background-color:${p => p.enabled?'#004182':'rgba(0,0,0,0.08)'};
+    background-color:${p => !p.disabled?'#004182':'rgba(0,0,0,0.08)'};
     }
 `;
 const UploadImage=styled.div`
@@ -335,7 +342,7 @@ const mapStateToProps = (state) => {
     };
   };
 const mapDispatchToProps = (dispatch) => ({
-        postArticle:(payload)=>dispatch(postArticleAPI(payload)),
+        postArticle:async (payload) =>await  dispatch(postArticleAPI(payload)),
   });
 
 export default connect(mapStateToProps,mapDispatchToProps)(PostModal)

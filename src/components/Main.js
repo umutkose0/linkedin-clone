@@ -1,47 +1,76 @@
 import React from 'react'
 import { styled } from 'styled-components';
 import PostModal from "./PostModal"
-import {useState} from "react"
-function Main() {
+import {useState,useEffect} from "react"
+import {connect} from "react-redux"
+import { getArticlesAPI } from '../actions';
+import ReactPlayer from 'react-player';
+function Main(props) {
   const [showModal,setShowModal]=useState(false);
+  const [refreshPost,setRefreshPost]=useState(false);
   const handleModal=()=>{
     setShowModal(!showModal);
   }
+  useEffect(()=>{
+    props.getArticles();
+    //console.log(props.articles);
+  },[])
+  useEffect(()=>{
+    if(refreshPost)
+    {
+      props.getArticles();
+    //console.log(props.articles);
+    //console.log("pulled at  ",Date(Date.now()))
+    setRefreshPost(false);
+    }
+  },[refreshPost])
   return (
     <Container>
         <ShareBox>
         <div>
-          <img src="/images/user.svg"/>
-          <button onClick={()=>setShowModal(true)}>Start a post</button>
+        {
+        props.user?.photoURL
+          ?<img src={props.user.photoURL} />
+          :<img src="/images/user.svg" />
+        }
+          <button onClick={()=>setShowModal(true)} disabled={props.loading?true:false}>
+            Start a post
+            </button>
         </div>
         <div>
-          <button>
+          <button onClick={()=>setShowModal(true)} disabled={props.loading?true:false}>
             <img src="/images/photo-icon.svg" />
             <span>Photo</span>
           </button>
-          <button>
+          <button onClick={()=>setShowModal(true)} disabled={props.loading?true:false}>
             <img src="/images/video-icon.svg" />
             <span>Video</span>
           </button>
-          <button>
+          <button onClick={()=>setShowModal(true)} disabled={props.loading?true:false}>
             <img src="/images/event-icon.svg" />
             <span>Event</span>
           </button>
-          <button>
+          <button onClick={()=>setShowModal(true)} disabled={props.loading?true:false}>
             <img src="/images/article-icon.svg" />
             <span>Write article</span>
           </button>
         </div>
         </ShareBox>
-        <div>
-          <Article>
+        <Content>
+          { props.loading && <img src="/images/loading.svg"/>}
+
+          {props.articles && 
+          props.articles.map(
+            (a,i)=>
+            <Article key={i}>
             <SharedActor>
               <a>
-                <img src="/images/user.svg"/>
+                {a.actor.image?<img src={a.actor.image} />:<img src="/images/user.svg"/>}
+                
                 <div>
-                  <span>Title</span>
-                  <span>Info</span>
-                  <span>Date</span>
+                  <span>{a.actor.title}</span>
+                  <span>{a.actor.description}</span>
+                  <span>{a.actor?.date && new Date(a.actor.date.seconds*1000).toLocaleDateString()}</span>
                 </div>
               </a>
               <button>
@@ -49,13 +78,24 @@ function Main() {
               </button>
             </SharedActor>
             <Description>
-              desc
+              {a.description}
             </Description>
-            <SharedImg>
+            {
+              a.shareImg &&
+              <SharedImg>
               <a>
-                <img src="https://picsum.photos/900/600" />
+                <img src={a.shareImg} />
               </a>
             </SharedImg>	
+            }
+            {
+              a.video &&
+              <SharedImg>
+              <a>
+                <ReactPlayer width={"100%"} url={a.video} />
+              </a>
+            </SharedImg>	
+            }
             <SocialCounts>
               <li>
                 <button>
@@ -63,11 +103,11 @@ function Main() {
                     <img src="https://static.licdn.com/sc/h/8ekq8gho1ruaf8i7f86vd1ftt" />
                     <img src="https://static.licdn.com/sc/h/b1dl5jk88euc7e9ri50xy5qo8" />
                   </div>
-                  <span>30</span>
+                  <span>50</span>
                 </button>
               </li>
               <li>
-                <a>2 comments</a>
+                <a> 3{a.comments} comments</a>
               </li>
             </SocialCounts>
             <SocialActions>
@@ -89,8 +129,10 @@ function Main() {
             </button>
             </SocialActions>
           </Article>
-        </div>
-        {showModal?<PostModal handleModal={handleModal} />:""}
+          )}
+          
+        </Content>
+        {showModal && <PostModal setRefreshPost={setRefreshPost} handleModal={handleModal} />}
         
     </Container>
   )
@@ -310,4 +352,22 @@ const SocialActions=styled.div`
   }
 
 `;
-export default Main
+const Content=styled.div`
+  text-align:center;
+  &>img{
+    width:30px;
+  }
+`;
+const mapStateToProps = (state) => {
+    return {
+      user:state.userState.user,
+      loading:state.articleState.loading,
+      articles:state.articleState.articles,
+    };
+  };
+
+const mapDispatchToProps = (dispatch) => ({
+      getArticles:()=>dispatch(getArticlesAPI()),
+  });
+
+export default connect(mapStateToProps,mapDispatchToProps)(Main)
